@@ -11,8 +11,6 @@ Read your newsletters and Substacks on your e-reader, cleaned of ads and tracker
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 
-<!-- photo: docs/images/kobo.jpg — a Kobo showing a cleaned newsletter (add before launch) -->
-
 ## Why
 
 Newsletters pile up in email, and an e-reader is a much better place to read them. A Kobo doesn't do email, but it does sync with Instapaper, though only for articles saved by web address. Emailing a newsletter to Instapaper doesn't work. So InboxInk puts each issue on a web page of its own and saves that address.
