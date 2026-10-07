@@ -12,6 +12,7 @@ from .safety import safe_fetch
 
 SIZE = 600
 MAX_CACHED_ICONS = 200  # the icon cache holds at most this many files; the oldest are evicted first
+GOOGLE_FAVICONS = "https://www.google.com/s2/favicons?sz=128&domain="
 BADGE = 0.5  # badge fills the upper-left quarter; smaller was unreadable in the e-reader's list view
 # Tried in order after cover.font: common bold fonts on macOS and Linux, then Pillow's built-in font.
 FONT_CANDIDATES = (
@@ -59,7 +60,10 @@ def site_icon(site):
     except Exception:
         pass
     candidates.sort(reverse=True)
-    for _, url in candidates + [((0, 0), f"https://{host}/favicon.ico")]:
+    # Last resort for sites whose bot protection refuses every non-browser request. Google learns only
+    # the publication's domain, and answers 404 for domains it has no icon for.
+    fallbacks = [((0, 0), f"https://{host}/favicon.ico"), ((0, 0), GOOGLE_FAVICONS + host)]
+    for _, url in candidates + fallbacks:
         try:
             data, _ = _get(url)
             im = Image.open(io.BytesIO(data))
@@ -123,26 +127,30 @@ def _initials(name):
     return "".join(w[0] for w in words[:2]).upper() or "?"
 
 
+def _initials_badge(publication):
+    side = int(SIZE * BADGE)
+    badge = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    d = ImageDraw.Draw(badge)
+    d.rounded_rectangle((0, 0, side - 1, side - 1), radius=side // 6, fill=(255, 255, 255, 235))
+    d.text((side / 2, side / 2), _initials(publication), font=_font(side // 2), fill="black", anchor="mm")
+    return badge
+
+
 def make_cover(lead_jpeg, site, publication):
     """lead_jpeg: bytes of the first article image or None. Returns JPEG bytes."""
     icon = site_icon(site) if site else None
     if lead_jpeg:
         tile = _square(Image.open(io.BytesIO(lead_jpeg))).convert("RGBA")
-        badge = _badge(icon) if icon else None
-        if badge is None:  # text badge from initials
-            side = int(SIZE * BADGE)
-            badge = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-            d = ImageDraw.Draw(badge)
-            d.rounded_rectangle((0, 0, side - 1, side - 1), radius=side // 6, fill=(255, 255, 255, 235))
-            f = _font(side // 2)
-            d.text((side / 2, side / 2), _initials(publication), font=f, fill="black", anchor="mm")
+        badge = _badge(icon) if icon else _initials_badge(publication)
         m = SIZE // 50
         tile.alpha_composite(badge, (m, m))  # top-left: a bottom-right badge gets cropped away in the e-reader's list view
     else:
         tile = Image.new("RGBA", (SIZE, SIZE), (238, 238, 238, 255))
         if icon:
             ic = icon.copy(); ic.thumbnail((SIZE // 2, SIZE // 2), Image.LANCZOS)
-            tile.alpha_composite(ic, ((SIZE - ic.width) // 2, SIZE // 8))
+        else:  # no icon anywhere: initials, so the tile never reads as blank
+            ic = _initials_badge(publication)
+        tile.alpha_composite(ic, ((SIZE - ic.width) // 2, SIZE // 8))
         d = ImageDraw.Draw(tile)
         f = _font(44)
         d.multiline_text((SIZE / 2, SIZE * 0.82), publication[:40], font=f, fill="black", anchor="mm", align="center")

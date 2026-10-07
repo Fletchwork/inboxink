@@ -77,6 +77,7 @@ InboxInk runs on your computer. There's no InboxInk server and no account with u
 - Links in a newsletter are rebuilt before publishing. Tracking and personal parameters are stripped, unsubscribe and account links are removed, and your own email addresses are scrubbed from the text.
 - It decodes tracking links without visiting them where it can. For the rest it asks the tracker where it points, one step at a time and never loading the destination, and drops the link if that fails. A tracker may count that request as a click. Unsubscribe links are never touched.
 - Ad removal is off unless you turn it on. It needs the Claude Code tool, and setup asks before enabling it. When it's on, the newsletter's text goes to Claude through your own Claude Code login. If that fails, nothing is removed and the issue is still delivered. If you install Claude Code after setup, run `inboxink setup` again to turn it on.
+- Each cover shows the publication's icon, fetched from its website. If the site blocks automated requests, InboxInk asks Google's favicon service instead, which tells Google the publication's domain and nothing else. With no icon at all, the cover shows the publication's initials.
 
 Details and how to report a problem are in [SECURITY.md](SECURITY.md).
 
