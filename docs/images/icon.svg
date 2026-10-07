@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="256" height="256" role="img" aria-label="InboxInk">
+<g style="color:#1f2328"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="8" y="4" width="48" height="56" rx="7" stroke-width="2.6"/>
+          <rect x="13" y="9" width="34" height="46" rx="1.5" stroke-width="1.8"/>
+          <rect x="50" y="22" width="3" height="8" rx="1.5" fill="currentColor" stroke="none"/>
+          <rect x="50" y="34" width="3" height="8" rx="1.5" fill="currentColor" stroke="none"/>
+          <path d="M23.5 14.5 H36.5 L40 20 V24.5 a2 2 0 0 1 -2 2 H22 a2 2 0 0 1 -2-2 V20 Z" stroke-width="1.9"/>
+          <path d="M20 20 H25.5 L27.5 23 H32.5 L34.5 20 H40" stroke-width="1.9"/>
+          <path d="M19.5 34 H40.5 M19.5 40.5 H40.5 M19.5 47 H33" stroke-width="1.8"/>
+        </g></g>
+</svg>
