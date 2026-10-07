@@ -1,4 +1,9 @@
-# InboxInk
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-dark.svg">
+    <img alt="InboxInk" src="docs/images/logo-light.svg" width="360">
+  </picture>
+</h1>
 
 Read your newsletters and Substacks on your e-reader, cleaned of ads and trackers and away from your inbox.
 
