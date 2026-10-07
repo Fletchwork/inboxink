@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "inboxink"
-version = "0.1.0"
+version = "0.1.1"
 description = "Read your newsletters and Substacks on your e-reader, cleaned of ads and trackers and away from your inbox."
 readme = "README.md"
 authors = [{ name = "Shahrum Amiri" }]
