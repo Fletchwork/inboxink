@@ -1,0 +1,11 @@
+// Copy to worker/wrangler.jsonc (git-ignored) and put your own KV namespace id below.
+// The Worker source ships inside the package at inboxink/worker/index.js.
+{
+  "name": "inboxink",
+  "main": "../inboxink/worker/index.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "kv_namespaces": [
+    { "binding": "LETTERS", "id": "<your-kv-namespace-id>" }
+  ]
+}

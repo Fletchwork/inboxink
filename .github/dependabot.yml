@@ -1,0 +1,37 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    # Wait a week before proposing a new release: most malicious package
+    # versions are caught and pulled within days.
+    cooldown:
+      default-days: 7
+    labels: [dependencies, python]
+    commit-message:
+      prefix: "chore(deps)"
+    # One weekly PR for all Python dependency updates, so each run costs a
+    # single CI pass instead of one per package.
+    groups:
+      python-dependencies:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    # Wait a week before proposing a new release: most malicious package
+    # versions are caught and pulled within days.
+    cooldown:
+      default-days: 7
+    labels: [dependencies, github-actions]
+    commit-message:
+      prefix: "chore(actions)"
+    # One weekly PR for all workflow action updates. A single grouped PR has
+    # no siblings that can fall behind main and conflict with it.
+    groups:
+      actions:
+        patterns: ["*"]

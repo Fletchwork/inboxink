@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[project]
+name = "inboxink"
+version = "0.1.0"
+description = "Read your newsletters and Substacks on your e-reader, cleaned of ads and trackers and away from your inbox."
+readme = "README.md"
+authors = [{ name = "Shahrum Amiri" }]
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+keywords = ["kobo", "instapaper", "newsletter", "substack", "eink", "ereader", "read-later"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Communications :: Email",
+]
+# Exact pins: `uv tool upgrade inboxink` then only changes dependencies when a new InboxInk release does.
+# Keep requirements.txt in step.
+dependencies = [
+    "beautifulsoup4==4.15.0",
+    "pillow==12.3.0",
+    "segno==1.6.6",
+    "soupsieve==2.10",
+    "typing_extensions==4.16.0",
+    "keyring==25.7.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.urls]
+Homepage = "https://github.com/Fletchwork/inboxink"
+Issues = "https://github.com/Fletchwork/inboxink/issues"
+Changelog = "https://github.com/Fletchwork/inboxink/releases"
+
+[project.scripts]
+inboxink = "inboxink.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["inboxink"]  # includes inboxink/worker/index.js, the Cloudflare Worker source
+
+[tool.hatch.build.targets.sdist]
+include = ["inboxink", "tests", "config.example.toml", "worker/wrangler.example.jsonc", "README.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

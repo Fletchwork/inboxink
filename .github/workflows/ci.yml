@@ -1,0 +1,287 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    # The defaults plus ready_for_review: flipping a draft to ready emits no
+    # `synchronize`, so without this type a draft's red check would never
+    # re-run on the same head.
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+# One run per ref; superseded pushes cancel (never on main).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  lint:
+    name: Lint & syntax check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # Heavy work runs once, when the PR is ready. On a DRAFT PR this first
+      # step fails the job red and every later step is skipped (a failed step
+      # skips the rest; never add an `if: always()` step below this without a
+      # draft guard). The job itself is never skipped: a skipped required
+      # check reads green, and a draft must not. Readying the PR emits
+      # ready_for_review, which runs this job again on the same head. A re-run
+      # of the draft's own run keeps the draft payload and stays red. Push and
+      # main runs are unaffected.
+      - name: Draft gate
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
+        run: |
+          echo "::error::draft: heavy jobs skipped; mark ready to run them"
+          echo "::notice::ready the PR (gh pr ready); re-running a draft's run keeps its draft payload and stays red"
+          exit 1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Python syntax check
+        # Compile every tracked .py so a parse error fails here, not at runtime.
+        run: |
+          mapfile -t pyfiles < <(git ls-files '*.py')
+          if [ "${#pyfiles[@]}" -gt 0 ]; then
+            python -m py_compile "${pyfiles[@]}"
+            echo "OK: python syntax (${#pyfiles[@]} files)"
+          else
+            echo "no python files to check"
+          fi
+
+      - name: Tests (pytest)
+        # Install InboxInk with its test extra (pytest and the pinned runtime
+        # dependencies from pyproject.toml), then run the suite.
+        run: |
+          python -m pip install --quiet -e ".[dev]"
+          python -m pytest -q
+
+      - name: Shell syntax check (bash -n)
+        run: |
+          fail=0
+          while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            if ! bash -n "$f"; then
+              echo "::error file=$f::bash -n syntax error"
+              fail=1
+            fi
+          done < <(git ls-files '*.sh')
+          [ "$fail" = 0 ] && echo "OK: shell syntax"
+          exit "$fail"
+
+      - name: Shellcheck (real bugs only)
+        # severity=error: block on genuine bugs, not style. ubuntu-latest
+        # ships shellcheck preinstalled.
+        run: |
+          fail=0
+          while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            shellcheck --shell=bash --severity=error "$f" || fail=1
+          done < <(git ls-files '*.sh')
+          [ "$fail" = 0 ] && echo "OK: shellcheck"
+          exit "$fail"
+
+      - name: JSON validity
+        run: |
+          fail=0
+          while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            python -c "import json,sys; json.load(open(sys.argv[1]))" "$f" \
+              || { echo "::error file=$f::Invalid JSON"; fail=1; }
+          done < <(git ls-files '*.json')
+          [ "$fail" = 0 ] && echo "OK: json"
+          exit "$fail"
+
+      - name: Secrets guard
+        # Secrets belong in the OS keychain or an environment variable, never
+        # the repo. Block if a common secret pattern is ever committed.
+        run: |
+          if git grep -nIE \
+            'sk-[A-Za-z0-9]{20,}|sk_live_|AKIA[0-9A-Z]{16}|xoxb-|ghp_[A-Za-z0-9]{36}|-----BEGIN [A-Z ]*PRIVATE KEY-----' \
+            -- . ':(exclude).github/*'; then
+            echo "::error::possible secret committed - see matches above"
+            exit 1
+          fi
+          echo "OK: no secrets detected"
+
+      - name: Local-path and leak guard
+        # Fails if a tracked file carries a developer-machine path, a
+        # symlinked-notes-folder reference, an AI-session link or a private-key
+        # header. Prints file NAMES only (-l), never the matched lines, so the
+        # log cannot echo whatever it found. This workflow file is excluded
+        # because it spells the patterns out.
+        run: |
+          files=$(git grep -l -I -E \
+            '[/]Users[/]|[.]vault[/]|_agent[/]|claude[.]ai[/]code[/]session|-----BEGIN [A-Z ]*PRIVATE KEY-----' \
+            -- . ':(exclude).github/workflows/ci.yml' || true)
+          if [ -n "$files" ]; then
+            echo "::error::tracked files contain a local path, session link or key header:"
+            echo "$files"
+            exit 1
+          fi
+          echo "OK: no local paths or leak patterns"
+
+  tests:
+    # Wider interpreter coverage than the required lint job, which already runs
+    # the suite on 3.11. Not a required check.
+    name: Tests (Python ${{ matrix.python-version }})
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install and test
+        run: |
+          python -m pip install --quiet -e ".[dev]"
+          python -m pytest -q
+
+  # Security scanning, independent of the lint job and a required check.
+  # gitleaks scans full git history for secrets (deeper than the pattern guard
+  # above), semgrep is a SAST pass, and OSV-Scanner checks dependencies against
+  # known vulnerabilities. Every downloaded tool is pinned to a version and a
+  # hardcoded SHA-256, and a mismatch fails the job.
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      GITLEAKS_VERSION: "8.30.1"
+      GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+      SEMGREP_VERSION: "1.179.0"
+      OSV_VERSION: "2.6.0"
+      OSV_SHA256: "ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0  # full history: gitleaks scans every commit reachable from HEAD, and the shallow check below fails closed
+          persist-credentials: false
+
+      - name: Install gitleaks (pinned, checksum-verified)
+        run: |
+          set -euo pipefail
+          tool_dir="$RUNNER_TEMP/security-tools"
+          mkdir -p "$tool_dir/gitleaks"
+          tarball="$tool_dir/gitleaks.tar.gz"
+          curl -sSfL -o "$tarball" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          actual=$(sha256sum "$tarball" | awk '{print $1}')
+          if [ "$actual" != "$GITLEAKS_SHA256" ]; then
+            echo "::error::gitleaks tarball checksum mismatch: expected $GITLEAKS_SHA256, got $actual"
+            exit 1
+          fi
+          tar -xzf "$tarball" -C "$tool_dir/gitleaks" gitleaks
+          "$tool_dir/gitleaks/gitleaks" version
+          echo "GITLEAKS_BIN=$tool_dir/gitleaks/gitleaks" >> "$GITHUB_ENV"
+
+      - name: Gitleaks (secret scan, git history)
+        # Scoped to HEAD on purpose: with no --log-opts gitleaks walks every
+        # branch, so one stale fixture on an unmerged branch would fail every
+        # PR. --redact keeps a matched value out of the job log. A shallow
+        # clone would scan only the commits present and pass, so fail instead.
+        run: |
+          shallow=$(git rev-parse --is-shallow-repository)
+          if [ "$shallow" != "false" ]; then
+            echo "::error::shallow checkout: gitleaks would skip history. Check out with fetch-depth: 0."
+            exit 1
+          fi
+          "$GITLEAKS_BIN" git . --redact --log-opts=HEAD --no-banner --exit-code 1
+
+      - name: Gitleaks (secret scan, working tree)
+        run: |
+          "$GITLEAKS_BIN" dir . --redact --no-banner --exit-code 1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Install semgrep (pinned)
+        # The venv lives outside the workspace so semgrep and OSV-Scanner never
+        # scan the tool's own bundled packages.
+        run: |
+          python -m venv "$RUNNER_TEMP/semgrep-venv"
+          "$RUNNER_TEMP/semgrep-venv/bin/pip" install --quiet "semgrep==${SEMGREP_VERSION}"
+
+      - name: Semgrep (SAST)
+        run: |
+          "$RUNNER_TEMP/semgrep-venv/bin/semgrep" scan --config p/default --error --metrics=off
+
+      - name: Install OSV-Scanner (pinned, checksum-verified)
+        run: |
+          set -euo pipefail
+          tool_dir="$RUNNER_TEMP/security-tools"
+          mkdir -p "$tool_dir"
+          bin="$tool_dir/osv-scanner"
+          curl -sSfL -o "$bin" \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_linux_amd64"
+          actual=$(sha256sum "$bin" | awk '{print $1}')
+          if [ "$actual" != "$OSV_SHA256" ]; then
+            echo "::error::osv-scanner checksum mismatch: expected $OSV_SHA256, got $actual"
+            exit 1
+          fi
+          chmod +x "$bin"
+          "$bin" --version
+          echo "OSV_SCANNER_BIN=$bin" >> "$GITHUB_ENV"
+
+      - name: OSV-Scanner (dependency vulnerabilities, HIGH/CRITICAL gate)
+        # OSV-Scanner exits 1 on a vulnerability of any severity, 128 when it
+        # finds nothing to scan, and anything else on a scanner failure. The
+        # gate re-reads the JSON and fails only on a CVSS score of 7.0 or
+        # higher, a database severity label of high or critical, or a
+        # malicious-package (MAL-) id. Any other exit code fails the job.
+        run: |
+          set +e
+          "$OSV_SCANNER_BIN" scan source --recursive --format json ./ > "$RUNNER_TEMP/osv-results.json" 2> "$RUNNER_TEMP/osv-scan.log"
+          rc=$?
+          set -e
+          cat "$RUNNER_TEMP/osv-scan.log"
+          case "$rc" in
+            0) echo "OK: no known vulnerabilities" ;;
+            128) echo "No package manifests found; nothing to scan" ;;
+            1)
+              high=$(jq '[.results[]?.packages[]? as $p | (
+                  ($p.groups[]?
+                    | select((.max_severity // "") != "" and ((.max_severity | tonumber) >= 7.0))
+                    | {package: $p.package.name, ids: .ids, source: "cvss", detail: .max_severity}),
+                  ($p.vulnerabilities[]?
+                    | select(((.database_specific.severity // "") | ascii_downcase) as $s
+                             | ($s == "high" or $s == "critical"))
+                    | {package: $p.package.name, ids: [.id], source: "database_specific", detail: .database_specific.severity}),
+                  ($p.vulnerabilities[]?
+                    | select(.id | startswith("MAL-"))
+                    | {package: $p.package.name, ids: [.id], source: "malicious-package", detail: "MAL"})
+                )] | unique' "$RUNNER_TEMP/osv-results.json")
+              count=$(echo "$high" | jq 'length')
+              if [ "$count" -gt 0 ]; then
+                echo "$high"
+                echo "::error::$count HIGH/CRITICAL dependency vulnerabilities found (see above)"
+                exit 1
+              fi
+              echo "OK: findings exist but all are below the HIGH threshold"
+              ;;
+            *)
+              echo "::error::osv-scanner exited $rc unexpectedly"
+              exit "$rc"
+              ;;
+          esac

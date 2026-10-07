@@ -1,0 +1,31 @@
+# --- OS / editor ---
+.DS_Store
+*.swp
+
+# --- logs / runtime ---
+*.log
+
+# --- local config and per-machine Worker config ---
+config.toml
+.env*
+worker/wrangler.jsonc
+
+# --- secrets (belt-and-suspenders; CI also blocks these) ---
+.env
+.env.*
+!.env.example
+!.env.sample
+.dev.vars
+*.token
+
+# --- python ---
+__pycache__/
+*.pyc
+.venv/
+.venv*/
+.pytest_cache/
+*.egg-info/
+state/
+
+# --- wrangler local cache (machine-local) ---
+.wrangler/

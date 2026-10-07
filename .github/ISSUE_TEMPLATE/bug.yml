@@ -1,0 +1,33 @@
+name: Bug report
+description: Something is not working as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`inboxink doctor` output"
+      description: Paste the output of `inboxink doctor`. It does not print secrets, but skim it before posting.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: macOS 15, Ubuntu 24.04, ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: InboxInk version
+      description: Shown in the `inboxink doctor` output, or by `uv tool list` / `pip show inboxink`.
+    validations:
+      required: true

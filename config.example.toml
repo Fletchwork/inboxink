@@ -1,0 +1,141 @@
+# InboxInk settings.
+#
+# Copy this file to ~/.config/inboxink/config.toml and fill in the lines that are not
+# commented out. Lines starting with "#" are notes or optional settings: remove the "#"
+# to change one. Each optional line shows the value InboxInk uses when you leave it alone.
+#
+# Passwords and API tokens do NOT go in this file. `inboxink setup` stores them in your
+# system keychain (or a private file that only you can read).
+#
+# Any single-value setting can also be set with an environment variable named
+# INBOXINK_<SECTION>_<KEY> in capitals, for example INBOXINK_WORKER_TTL_DAYS=14.
+
+
+# --- Where your newsletters come from --------------------------------------------------------
+[source]
+# How InboxInk reads your mail: "imap" (a normal mailbox, the easy option) or "gog"
+# (the `gog` command line tool for Google Workspace accounts, for advanced users).
+# kind = "imap"
+
+# Is this mailbox only for newsletters? Say true and InboxInk treats everything in the
+# inbox as a newsletter. Say false (the default) and it only picks up mail you have put
+# under the "source" label below.
+# newsletters_only = false
+
+
+[gmail]
+# Your Gmail address. Required when kind = "imap".
+address = "you@gmail.com"
+
+# Take each delivered message out of the inbox. It is always marked read.
+# archive_on_done = true
+
+[gmail.labels]
+# The label you (or a mail filter) put on a newsletter to have it sent to your reader.
+# Ignored when newsletters_only = true.
+# source = "Newsletter"
+
+# InboxInk adds this label once a newsletter has been delivered.
+# done = "Newsletter/Delivered"
+
+# InboxInk adds this label if an issue keeps failing, so it stops retrying. Remove the
+# label to try that issue again.
+# failed = "Newsletter/Failed"
+
+
+[gog]
+# Only used when kind = "gog". The Google account name that `gog` knows you by.
+# account = "me@example.com"
+
+# The `gog` program to run. Give a full path if it is not on your PATH.
+# bin = "gog"
+
+
+# --- Where cleaned pages are hosted ----------------------------------------------------------
+[worker]
+# The address of your InboxInk Worker on Cloudflare (free plan), with no trailing slash.
+# `inboxink setup` fills this in for you.
+base_url = "https://inboxink.your-subdomain.workers.dev"
+
+# The id of the Cloudflare KV storage space the Worker reads pages from. 32 letters and
+# digits. `inboxink setup` creates it and fills this in.
+kv_namespace_id = "REPLACE-WITH-32-CHARACTER-KV-NAMESPACE-ID"
+
+# Your Cloudflare account id. Optional; the setup wizard looks it up for you.
+# account_id = ""
+
+# How many days a hosted page stays online before it deletes itself.
+# ttl_days = 30
+
+
+# --- How your newsletters are shaped ---------------------------------------------------------
+[reader]
+# Other email addresses of yours. If one of them appears in a newsletter (in a link or in
+# the text) it is removed before the page is published. The Gmail address above is
+# always included.
+# own_addresses = ["me@example.com"]
+
+# Pretty names for senders that have no display name. Pairs of "sender address" = "Name".
+# publication_names = { "digest@example.com" = "The Weekly Widget" }
+
+# Your time zone, used for the date added to each title, such as "America/Chicago".
+# Leave it out to use your computer's time zone.
+# timezone = ""
+
+# The widest picture to keep, in pixels. Wider pictures are shrunk to this. The default
+# fits a Kobo Libra Colour; use your reader's screen width.
+# max_image_width = 1264
+
+
+[cover]
+# A TrueType font file for the cover thumbnail's lettering. Leave it out and InboxInk
+# looks for a common bold font on your system, then falls back to a built-in one.
+# font = ""
+
+
+# --- Where InboxInk keeps its files ----------------------------------------------------------
+[paths]
+# The record of what has been sent. Do not delete it, or old issues may be sent again.
+# state_dir = "~/.local/state/inboxink"
+
+# Downloaded site icons used on cover thumbnails. Safe to delete.
+# cache_dir = "~/.cache/inboxink"
+
+# The activity log. Trimmed to its last 200 KB whenever it passes 1 MB.
+# log = "~/.local/state/inboxink/inboxink.log"
+
+
+[instapaper]
+# Optional. A private file (readable by you only) with two lines, INSTAPAPER_USER=... and
+# INSTAPAPER_PASSWORD=.... Normally unnecessary: `inboxink setup` stores your login in the
+# system keychain instead.
+# env_file = ""
+
+# Optional. The name of a macOS Keychain item that holds your Instapaper login, for
+# people who set one up by hand. The item's account is your Instapaper email.
+# keychain_service = "inboxink-instapaper"
+
+
+[adstrip]
+# Use the Claude Code command line tool to cut ads and promotions out of each issue.
+# Off by default: turning it on sends each newsletter's text to Claude through your own
+# Claude Code login. Needs the `claude` command installed. If it fails, nothing is removed
+# and the issue is still delivered.
+# enabled = false
+
+# Which Claude model does the ad check.
+# model = "haiku"
+
+
+[schedule]
+# How often to check for new newsletters, in minutes.
+# interval_minutes = 30
+
+# The name the scheduler uses for the job. Only change it if you run two copies.
+# label = "io.github.fletchwork.inboxink"
+
+
+[updates]
+# Keep InboxInk up to date automatically (a daily check). Set false to update by hand
+# with `inboxink update`.
+# auto = true
