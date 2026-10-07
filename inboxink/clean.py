@@ -64,8 +64,9 @@ def unwrap(url):
 
 
 # E-reader fonts have no emoji or pictographs: they render as tofu boxes, so they go.
-EMOJI = re.compile("[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U00002B00-\U00002BFF"
-                   "\U0000FE00-\U0000FE0F\U0000200D\U000020E3\U000E0000-\U000E007F]")
+# One astral range per character class: CodeQL misreads two astral ranges in one class as overlapping.
+EMOJI = re.compile("[\U0001F000-\U0001FAFF]|[\U000E0000-\U000E007F]"
+                   "|[\u2600-\u27BF\u2B00-\u2BFF\uFE00-\uFE0F\u200D\u20E3]")
 
 
 def no_emoji(text):
