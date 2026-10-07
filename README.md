@@ -1,7 +1,7 @@
 <h1 align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-dark.svg">
-    <img alt="InboxInk" src="docs/images/logo-light.svg" width="360">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Fletchwork/inboxink/main/docs/images/logo-dark.svg">
+    <img alt="InboxInk" src="https://raw.githubusercontent.com/Fletchwork/inboxink/main/docs/images/logo-light.svg" width="360">
   </picture>
 </h1>
 
