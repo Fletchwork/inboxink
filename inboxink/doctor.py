@@ -29,7 +29,7 @@ def run_checks():
         return results
     results.append((True, f"Settings file: {cfg.config_file}", None))
 
-    def secrets_present():
+    def logins_saved():
         names = (["gmail_app_password"] if cfg.source.kind == "imap" else []) + ["cloudflare_token", "instapaper"]
         missing = []
         for n in names:
@@ -40,7 +40,7 @@ def run_checks():
             if not have:
                 missing.append(n.replace("_", " "))
         return (not missing, "all saved" if not missing else "missing " + ", ".join(missing))
-    _check(results, "Passwords and tokens", secrets_present, "run `inboxink setup` to enter them again")
+    _check(results, "Passwords and tokens", logins_saved, "run `inboxink setup` to enter them again")
 
     def mail():
         src = get_source(cfg)

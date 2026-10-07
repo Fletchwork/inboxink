@@ -65,7 +65,7 @@ def unwrap(url):
 
 # E-reader fonts have no emoji or pictographs: they render as tofu boxes, so they go.
 EMOJI = re.compile("[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U00002B00-\U00002BFF"
-                   "\U0000FE00-\U0000FE0F\U0000200D\U000020E3\U0001F1E6-\U0001F1FF\U000E0000-\U000E007F]")
+                   "\U0000FE00-\U0000FE0F\U0000200D\U000020E3\U000E0000-\U000E007F]")
 
 
 def no_emoji(text):
