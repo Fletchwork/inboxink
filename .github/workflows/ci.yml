@@ -12,9 +12,9 @@ on:
 permissions:
   contents: read
 
-# One run per ref; superseded pushes cancel (never on main).
+# One run per PR ref, where a superseded push cancels; on main each push runs on its own (hosted runners: no queue, vault decision 58d1c3a2).
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.ref == 'refs/heads/main' && format('ci-main-run-{0}', github.run_id) || format('ci-{0}', github.ref) }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
