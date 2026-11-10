@@ -265,6 +265,8 @@ def clean(eml_bytes, article_id, base_url, ad_filter=None, fetch_image=None, res
             t.decompose()
     resolved = 0
     for a in soup.find_all("a"):
+        if a.decomposed:  # nested inside a link dropped earlier in this loop (Substack's podcast player)
+            continue
         text = a.get_text(" ", strip=True)
         href = (a.get("href") or "").strip()
         if DROP_TEXT.search(text) or DROP_HREF.search(href):
