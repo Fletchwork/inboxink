@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling==1.32.4"]
+requires = ["hatchling==1.33.0"]
 build-backend = "hatchling.build"
 
 [project]
@@ -28,9 +28,9 @@ classifiers = [
 # Keep requirements.txt in step.
 dependencies = [
     "beautifulsoup4==4.15.0",
-    "pillow==12.3.0",
+    "pillow==13.0.0",
     "segno==1.6.6",
-    "soupsieve==2.10",
+    "soupsieve==3.0.4",
     "typing_extensions==4.16.0",
     "keyring==25.7.0",
 ]
