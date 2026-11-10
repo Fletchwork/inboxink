@@ -70,6 +70,18 @@ def test_tokens_and_unsubscribe_links_are_removed():
     assert 'href="https://x.com/a?id=7"' in doc
 
 
+def test_links_inside_a_dropped_link_do_not_crash_the_cleaner():
+    # Substack podcast emails wrap the audio player in an app-link "play" link that holds more links,
+    # and html.parser keeps the nesting. Dropping the outer link destroys the inner ones while they
+    # are still queued in the link loop; touching one used to raise and fail the whole issue.
+    player = ('<a href="https://substack.com/app-link/post?publication_id=1&post_id=2&utm_source=podcast-email">'
+              '<p>Example Pod</p><a href="https://example.substack.com/p/episode">Episode title</a>'
+              '<a href="https://example.substack.com/p/episode?play=1">0:00</a></a>')
+    _, doc, *_ = run(f'<p>Intro</p>{player}<p>After <a href="https://widgets.example/">more</a></p>')
+    assert "app-link" not in doc and "Episode title" not in doc
+    assert 'href="https://widgets.example/"' in doc
+
+
 def test_auditor_token_cases_never_reach_the_page():
     _, doc, *_ = run(
         '<p>Hi reader@example.com, read <a href="https://click.convertkit-mail2.com/SUBTOKEN123/x">this</a></p>'
